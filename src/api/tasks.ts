@@ -1,9 +1,24 @@
 import http from './http';
-import type { Task, TaskObject } from '@/types/models';
+import type { MockObject, Task, TaskObject, TaskProgress } from '@/types/models';
 
 export interface CreateTaskPayload {
-  name: string;
   accountId: number;
+  bucket: string;
+  objectKeys: string[];
+  targetPath: string;
+}
+
+export interface FetchMockObjectsParams {
+  accountId: number;
+  bucket: string;
+  page?: number;
+  pageSize?: number;
+  keyword?: string;
+}
+
+export interface MockObjectsResponse {
+  items: MockObject[];
+  total: number;
 }
 
 export const fetchTasks = async () => {
@@ -19,6 +34,18 @@ export const createTask = async (payload: CreateTaskPayload) => {
 export const fetchTaskObjects = async (taskId: number, status?: string) => {
   const { data } = await http.get<TaskObject[]>(`/tasks/${taskId}/objects`, {
     params: status ? { status } : undefined,
+  });
+  return data;
+};
+
+export const fetchTaskProgress = async (taskId: number) => {
+  const { data } = await http.get<TaskProgress>(`/tasks/${taskId}/progress`);
+  return data;
+};
+
+export const fetchMockObjects = async (params: FetchMockObjectsParams) => {
+  const { data } = await http.get<MockObjectsResponse>('/master/mock-objects', {
+    params,
   });
   return data;
 };

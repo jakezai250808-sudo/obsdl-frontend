@@ -7,9 +7,10 @@ export interface Account {
 
 export interface Task {
   id: number;
-  name: string;
   status: 'pending' | 'running' | 'success' | 'failed';
   accountId: number;
+  bucket: string;
+  targetPath: string;
   createdAt: string;
 }
 
@@ -18,4 +19,15 @@ export interface TaskObject {
   objectKey: string;
   status: 'pending' | 'running' | 'success' | 'failed';
   size: number;
+}
+
+export interface MockObject {
+  key: string;
+  size: number;
+  lastModified?: string;
+}
+
+export interface TaskProgress {
+  done: number;
+  total: number;
 }
