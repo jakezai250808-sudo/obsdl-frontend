@@ -8,8 +8,25 @@ const http = axios.create({
   timeout: 10000,
 });
 
+type ApiEnvelope<T = unknown> = {
+  code: number;
+  message?: string;
+  data: T;
+};
+
+const isApiEnvelope = (value: unknown): value is ApiEnvelope => {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.code === 'number' && 'data' in candidate;
+};
+
 http.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (isApiEnvelope(response.data)) {
+      response.data = response.data.data;
+    }
+    return response;
+  },
   (error) => {
     const message = error?.response?.data?.message || error?.message || '请求失败';
     ElMessage.error(message);

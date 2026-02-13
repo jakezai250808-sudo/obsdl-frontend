@@ -1,8 +1,14 @@
 export interface Account {
   id: number;
   name: string;
-  email: string;
+  email?: string;
   remark?: string;
+  obsAccessKey?: string;
+  obsSecretKey?: string;
+  obsEndpoint?: string;
+  obsBucket?: string;
+  obsRegion?: string;
+  obsProjectId?: string;
 }
 
 export interface Task {
