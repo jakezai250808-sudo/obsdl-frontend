@@ -3,8 +3,14 @@ import type { Account } from '@/types/models';
 
 export interface AccountPayload {
   name: string;
-  email: string;
+  email?: string;
   remark?: string;
+  obsAccessKey?: string;
+  obsSecretKey?: string;
+  obsEndpoint?: string;
+  obsBucket?: string;
+  obsRegion?: string;
+  obsProjectId?: string;
 }
 
 export const fetchAccounts = async () => {
