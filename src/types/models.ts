@@ -16,7 +16,7 @@ export interface Task {
   status: 'pending' | 'running' | 'success' | 'failed';
   accountId: number;
   bucket: string;
-  targetPath: string;
+  targetPath?: string;
   createdAt: string;
 }
 
