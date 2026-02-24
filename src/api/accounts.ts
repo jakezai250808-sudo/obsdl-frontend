@@ -13,6 +13,24 @@ export interface AccountPayload {
   obsProjectId?: string;
 }
 
+interface AccountApiPayload {
+  name: string;
+  accessKey: string;
+  secretKey: string;
+  endpoint: string;
+  bucket: string;
+}
+
+const toAccountApiPayload = (payload: AccountPayload): AccountApiPayload => {
+  return {
+    name: payload.name,
+    accessKey: payload.obsAccessKey ?? '',
+    secretKey: payload.obsSecretKey ?? '',
+    endpoint: payload.obsEndpoint ?? '',
+    bucket: payload.obsBucket ?? '',
+  };
+};
+
 const normalizeAccount = (item: unknown): Account | null => {
   if (!item || typeof item !== 'object') return null;
   const raw = item as Record<string, unknown>;
@@ -69,15 +87,20 @@ export const fetchAccounts = async () => {
 };
 
 export const createAccount = async (payload: AccountPayload) => {
-  const { data } = await http.post<Account>('/accounts', payload);
+  const { data } = await http.post<Account>('/accounts', toAccountApiPayload(payload));
   return data;
 };
 
 export const updateAccount = async (id: number, payload: AccountPayload) => {
-  const { data } = await http.put<Account>(`/accounts/${id}`, payload);
+  const { data } = await http.put<Account>('/accounts', {
+    id,
+    ...toAccountApiPayload(payload),
+  });
   return data;
 };
 
 export const deleteAccount = async (id: number) => {
-  await http.delete(`/accounts/${id}`);
+  await http.delete('/accounts', {
+    params: { id },
+  });
 };

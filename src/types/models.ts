@@ -18,10 +18,11 @@ export interface Task {
   bucket: string;
   targetPath?: string;
   createdAt: string;
+  objects?: TaskObject[];
 }
 
 export interface TaskObject {
-  id: number;
+  id?: number;
   objectKey: string;
   status: 'pending' | 'running' | 'success' | 'failed';
   size: number;

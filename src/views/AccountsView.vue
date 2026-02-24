@@ -157,8 +157,8 @@ const openEdit = (account: Account) => {
 };
 
 const submit = async () => {
-  if (!form.name || !form.obsAccessKey || !form.obsSecretKey || !form.obsEndpoint) {
-    ElMessage.warning('请填写名称以及 OBS 必填字段（AK/SK/Endpoint）');
+  if (!form.name || !form.obsAccessKey || !form.obsSecretKey || !form.obsEndpoint || !form.obsBucket) {
+    ElMessage.warning('请填写名称以及 OBS 必填字段（AK/SK/Endpoint/Bucket）');
     return;
   }
 
@@ -168,7 +168,7 @@ const submit = async () => {
     obsAccessKey: form.obsAccessKey,
     obsSecretKey: form.obsSecretKey,
     obsEndpoint: form.obsEndpoint,
-    obsBucket: form.obsBucket || undefined,
+    obsBucket: form.obsBucket,
     obsRegion: form.obsRegion || undefined,
     obsProjectId: form.obsProjectId || undefined,
   };

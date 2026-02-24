@@ -22,6 +22,11 @@ export interface MockObjectsResponse {
   total: number;
 }
 
+interface TaskCreateApiResponse {
+  taskId?: number;
+  id?: number;
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 };
@@ -140,20 +145,41 @@ export const fetchTasks = async () => {
 };
 
 export const createTask = async (payload: CreateTaskPayload) => {
-  const { data } = await http.post<Task>('/tasks', payload);
-  return data;
+  const { data } = await http.post<TaskCreateApiResponse>('/tasks', payload);
+  const taskId = typeof data.taskId === 'number' ? data.taskId : data.id;
+  if (typeof taskId !== 'number') {
+    throw new Error('创建任务返回数据格式错误，缺少 taskId');
+  }
+  return { taskId };
+};
+
+export const retryTask = async (taskId: number) => {
+  const { data } = await http.post<TaskCreateApiResponse>(`/tasks/${taskId}/retry`, {});
+  const newTaskId = typeof data.taskId === 'number' ? data.taskId : data.id;
+  if (typeof newTaskId !== 'number') {
+    throw new Error('重试任务返回数据格式错误，缺少 taskId');
+  }
+  return { taskId: newTaskId };
 };
 
 export const fetchTaskObjects = async (taskId: number, status?: string) => {
-  const { data } = await http.get<TaskObject[]>(`/tasks/${taskId}/objects`, {
-    params: status ? { status } : undefined,
-  });
+  const { data } = await http.get<TaskObject[]>(`/tasks/${taskId}/objects`);
+  if (!status) return data;
+  return data.filter((item) => item.status === status);
+};
+
+export const fetchTaskById = async (taskId: number) => {
+  const { data } = await http.get<Task>(`/tasks/${taskId}`);
   return data;
 };
 
 export const fetchTaskProgress = async (taskId: number) => {
-  const { data } = await http.get<TaskProgress>(`/tasks/${taskId}/progress`);
-  return data;
+  const task = await fetchTaskById(taskId);
+  const objects = Array.isArray(task.objects) ? task.objects : [];
+  const done = objects.filter((item) => item.status === 'success' || item.status === 'failed').length;
+  const total = objects.length;
+  const progress: TaskProgress = { done, total };
+  return progress;
 };
 
 export const fetchMockObjects = async (params: FetchMockObjectsParams) => {
