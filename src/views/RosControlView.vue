@@ -68,9 +68,10 @@ import { onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { rosStart, rosStatus, rosStop, type RosStatusResponse, type RosVersion } from '@/api/ros';
 
 const TOKEN_KEY = 'rosctl_token';
+const BACKEND_URL_KEY = 'rosctl_backend_base_url';
 
 const form = reactive({
-  backendBaseUrl: '',
+  backendBaseUrl: localStorage.getItem(BACKEND_URL_KEY) || '',
   token: localStorage.getItem(TOKEN_KEY) || '',
   rosVersion: 'ROS1' as RosVersion,
   bagPath: '',
@@ -94,6 +95,13 @@ const stopLoading = ref(false);
 const statusLoading = ref(false);
 const autoRefresh = ref(true);
 let timer: number | null = null;
+
+watch(
+  () => form.backendBaseUrl,
+  (value) => {
+    localStorage.setItem(BACKEND_URL_KEY, value.trim());
+  },
+);
 
 watch(
   () => form.token,
