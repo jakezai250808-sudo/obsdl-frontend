@@ -4,6 +4,7 @@
       <el-menu :default-active="activePath" router>
         <el-menu-item index="/accounts">Accounts</el-menu-item>
         <el-menu-item index="/tasks">Tasks</el-menu-item>
+        <el-menu-item index="/ros-control">ROS 控制台</el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>
@@ -22,6 +23,7 @@ import { useRoute } from 'vue-router';
 const route = useRoute();
 const activePath = computed(() => {
   if (route.path.startsWith('/tasks')) return '/tasks';
+  if (route.path.startsWith('/ros-control')) return '/ros-control';
   return route.path;
 });
 </script>

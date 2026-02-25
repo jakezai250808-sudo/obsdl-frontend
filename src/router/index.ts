@@ -5,6 +5,7 @@ import AccountsView from '@/views/AccountsView.vue';
 import CreateTaskView from '@/views/CreateTaskView.vue';
 import TaskDetailView from '@/views/TaskDetailView.vue';
 import TasksView from '@/views/TasksView.vue';
+import RosControlView from '@/views/RosControlView.vue';
 
 const router = createRouter({
   history: createWebHistory(),
@@ -18,6 +19,7 @@ const router = createRouter({
         { path: 'tasks', component: TasksView },
         { path: 'tasks/create', component: CreateTaskView },
         { path: 'tasks/:id', component: TaskDetailView, props: true },
+        { path: 'ros-control', component: RosControlView },
       ],
     },
   ],
