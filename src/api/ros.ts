@@ -14,6 +14,7 @@ export interface RosStartPayload {
 export interface RosStatusResponse {
   status: string;
   wsUrl?: string;
+  vncUrl?: string;
   roscorePid?: number | null;
   bridgePid?: number | null;
   bagPid?: number | null;
