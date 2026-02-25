@@ -43,34 +43,36 @@
         <el-col :xs="24" :md="12">
           <el-descriptions title="控制状态" :column="1" border>
             <el-descriptions-item label="status">{{ statusData.status || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="wsUrl">{{ statusData.wsUrl || '-' }}</el-descriptions-item>
+            <el-descriptions-item v-if="currentViewerPage === 'web'" label="wsUrl">{{ statusData.wsUrl || '-' }}</el-descriptions-item>
             <el-descriptions-item label="roscorePid">{{ statusData.roscorePid ?? '-' }}</el-descriptions-item>
             <el-descriptions-item label="bridgePid">{{ statusData.bridgePid ?? '-' }}</el-descriptions-item>
             <el-descriptions-item label="bagPid">{{ statusData.bagPid ?? '-' }}</el-descriptions-item>
             <el-descriptions-item label="message">{{ statusData.message || '-' }}</el-descriptions-item>
           </el-descriptions>
 
-          <el-divider />
+          <template v-if="currentViewerPage === 'web'">
+            <el-divider />
 
-          <el-form :model="connectionForm" label-width="130px">
-            <el-form-item label="rosbridge wsUrl">
-              <el-input v-model="connectionForm.wsUrl" placeholder="ws://127.0.0.1:9090" />
-            </el-form-item>
-            <el-form-item label="状态自动连接">
-              <el-switch v-model="connectionForm.autoConnectWhenRunning" />
-            </el-form-item>
-            <el-form-item label="连接状态">
-              <el-tag :type="connectionTagType">{{ connectionState }}</el-tag>
-            </el-form-item>
-            <el-form-item label="最近错误">
-              <span class="error-text">{{ connectionError || '-' }}</span>
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" :loading="connectLoading" @click="handleConnect">Connect</el-button>
-              <el-button @click="handleDisconnect">Disconnect</el-button>
-              <el-button :disabled="connectionState !== 'CONNECTED'" @click="refreshTopics">Refresh Topics</el-button>
-            </el-form-item>
-          </el-form>
+            <el-form :model="connectionForm" label-width="130px">
+              <el-form-item label="rosbridge wsUrl">
+                <el-input v-model="connectionForm.wsUrl" placeholder="ws://127.0.0.1:9090" />
+              </el-form-item>
+              <el-form-item label="状态自动连接">
+                <el-switch v-model="connectionForm.autoConnectWhenRunning" />
+              </el-form-item>
+              <el-form-item label="连接状态">
+                <el-tag :type="connectionTagType">{{ connectionState }}</el-tag>
+              </el-form-item>
+              <el-form-item label="最近错误">
+                <span class="error-text">{{ connectionError || '-' }}</span>
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" :loading="connectLoading" @click="handleConnect">Connect</el-button>
+                <el-button @click="handleDisconnect">Disconnect</el-button>
+                <el-button :disabled="connectionState !== 'CONNECTED'" @click="refreshTopics">Refresh Topics</el-button>
+              </el-form-item>
+            </el-form>
+          </template>
         </el-col>
       </el-row>
     </el-card>
