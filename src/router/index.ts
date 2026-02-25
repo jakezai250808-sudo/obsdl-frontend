@@ -6,6 +6,7 @@ import CreateTaskView from '@/views/CreateTaskView.vue';
 import TaskDetailView from '@/views/TaskDetailView.vue';
 import TasksView from '@/views/TasksView.vue';
 import RosControlView from '@/views/RosControlView.vue';
+import RosPerceptionViewerView from '@/views/RosPerceptionViewerView.vue';
 
 const router = createRouter({
   history: createWebHistory(),
@@ -20,6 +21,7 @@ const router = createRouter({
         { path: 'tasks/create', component: CreateTaskView },
         { path: 'tasks/:id', component: TaskDetailView, props: true },
         { path: 'ros-control', component: RosControlView },
+        { path: 'ros-perception-viewer', component: RosPerceptionViewerView },
       ],
     },
   ],
