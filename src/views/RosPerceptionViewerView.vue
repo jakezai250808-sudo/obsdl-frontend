@@ -2,7 +2,7 @@
   <div class="ros-perception-page">
     <el-card class="panel-card">
       <template #header>
-        <div class="card-header">ROS Perception Viewer (L1)</div>
+        <div class="card-header">ROSBag Play (L1)</div>
       </template>
 
       <el-row :gutter="16">
@@ -75,179 +75,251 @@
       </el-row>
     </el-card>
 
-    <el-row :gutter="16" class="content-row">
-      <el-col :xs="24" :lg="8">
-        <el-card class="panel-card">
-          <template #header>
-            <div class="card-header">Topics & 订阅</div>
-          </template>
-
-          <el-input v-model="topicFilter" placeholder="搜索 topic 名称" clearable />
-
-          <el-table
-            :data="filteredTopics"
-            height="320"
-            size="small"
-            @selection-change="handleTopicSelectionChange"
-          >
-            <el-table-column type="selection" width="44" />
-            <el-table-column prop="name" label="Topic" min-width="200" show-overflow-tooltip />
-            <el-table-column prop="type" label="Type" min-width="180" show-overflow-tooltip />
-          </el-table>
-
-          <div class="action-row">
-            <el-button type="primary" size="small" @click="handleSubscribeSelected">Subscribe Selected</el-button>
-            <el-button size="small" @click="subscribeCommonPerceptionTopics">订阅常见感知</el-button>
-          </div>
-
-          <el-form label-position="top">
-            <el-form-item label="手动输入 topics（逗号/换行分隔）">
-              <el-input
-                v-model="manualTopicsInput"
-                type="textarea"
-                :rows="3"
-                placeholder="/points_raw, /tf\n/marker_array"
-              />
-            </el-form-item>
-            <el-form-item>
-              <el-button size="small" @click="handleSubscribeManual">Add/Subscribe</el-button>
-            </el-form-item>
-          </el-form>
-
-          <div class="recent-wrapper">
-            <div class="sub-title">最近订阅组</div>
-            <div class="action-row">
-              <el-button size="small" @click="subscribeRecent" :disabled="!recentTopicGroup.length">Subscribe Recent</el-button>
-            </div>
-            <el-scrollbar max-height="90px">
-              <div class="recent-list">{{ recentTopicGroup.join(', ') || '-' }}</div>
-            </el-scrollbar>
-          </div>
-
-          <div class="preset-wrapper">
-            <div class="sub-title">订阅预设</div>
-            <el-input v-model="presetNameInput" placeholder="预设名，如 perception-default" size="small" />
-            <div class="action-row">
-              <el-button size="small" @click="saveCurrentAsPreset" :disabled="!subscribedRows.length || !presetNameInput.trim()">
-                保存当前订阅
-              </el-button>
-            </div>
-            <el-select v-model="selectedPresetName" placeholder="选择预设" class="full-width" clearable size="small">
-              <el-option v-for="item in presetNames" :key="item" :label="item" :value="item" />
-            </el-select>
-            <div class="action-row">
-              <el-button size="small" :disabled="!selectedPresetName" @click="applySelectedPreset">应用预设</el-button>
-              <el-button size="small" type="danger" :disabled="!selectedPresetName" @click="deleteSelectedPreset">删除预设</el-button>
-            </div>
-          </div>
-
-          <el-divider />
-
-          <div class="list-title-row">
-            <div class="sub-title">已订阅</div>
-            <el-button size="small" type="danger" @click="handleUnsubscribeAll" :disabled="!subscribedRows.length">
-              Unsubscribe All
-            </el-button>
-          </div>
-
-          <el-table :data="subscribedRows" height="260" size="small">
-            <el-table-column prop="name" label="Topic" min-width="180" show-overflow-tooltip />
-            <el-table-column prop="type" label="Type" min-width="170" show-overflow-tooltip />
-            <el-table-column prop="rate" label="Hz(5s)" width="78" />
-            <el-table-column prop="lastUpdateText" label="Latest" width="130" />
-            <el-table-column label="Action" width="110">
-              <template #default="scope">
-                <el-button link type="danger" @click="handleUnsubscribe(scope.row.name)">Unsubscribe</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-card>
-      </el-col>
-
-      <el-col :xs="24" :lg="16">
-        <el-card class="panel-card">
-          <template #header>
-            <div class="card-header">3D Viewer</div>
-          </template>
-
-          <div class="viewer-toolbar">
-            <el-select v-model="fixedFrame" filterable allow-create default-first-option placeholder="Fixed Frame">
-              <el-option v-for="item in fixedFrameOptions" :key="item" :label="item" :value="item" />
-            </el-select>
-            <el-switch v-model="renderPaused" active-text="暂停渲染" inactive-text="渲染中" />
-            <el-input-number v-model="pointCloudRenderHz" :min="1" :max="30" label="点云Hz" />
-            <el-input-number v-model="markerRenderHz" :min="1" :max="30" label="MarkerHz" />
-            <el-input-number v-model="pointSize" :min="0.02" :max="1" :step="0.02" label="点大小" />
-            <el-input-number v-model="maxPointCloudPoints" :min="10000" :step="10000" label="点数上限" />
-            <el-switch v-model="showGrid" active-text="Grid" inactive-text="No Grid" />
-            <el-switch v-model="showAxes" active-text="Axes" inactive-text="No Axes" />
-            <el-switch v-model="showPointCloud" active-text="点云开" inactive-text="点云关" />
-            <el-switch v-model="showMarkers" active-text="Marker开" inactive-text="Marker关" />
-            <el-button @click="resetCamera('default')">重置视角</el-button>
-            <el-button @click="resetCamera('top')">俯视</el-button>
-            <el-button @click="resetCamera('front')">前视</el-button>
-          </div>
-
-          <div ref="threeContainerRef" class="three-canvas" />
-        </el-card>
-
-        <el-row :gutter="16" class="sub-view-row">
-          <el-col :xs="24" :md="12">
-            <el-card class="panel-card small-card">
+    <div class="content-tabs">
+      <template v-if="currentViewerPage === 'web'">
+        <el-row :gutter="16" class="content-row">
+          <el-col :xs="24" :lg="8">
+            <el-card class="panel-card">
               <template #header>
-                <div class="card-header">Image Viewer</div>
+                <div class="card-header">Topics & 订阅</div>
               </template>
 
-              <div class="image-grid">
-                <div v-for="slot in imageSlots" :key="slot.id" class="image-slot">
-                  <el-select v-model="slot.topic" placeholder="选择图像 topic" class="full-width" clearable size="small">
-                    <el-option v-for="item in imageTopicOptions" :key="`${slot.id}-${item.name}`" :label="item.name" :value="item.name" />
-                  </el-select>
+              <el-input v-model="topicFilter" placeholder="搜索 topic 名称" clearable />
 
-                  <div class="image-box">
-                    <img v-if="slot.src" :src="slot.src" alt="ROS Image" class="ros-image" />
-                    <div v-else class="placeholder">未收到图像消息</div>
-                  </div>
+              <el-table
+                :data="filteredTopics"
+                height="320"
+                size="small"
+                @selection-change="handleTopicSelectionChange"
+              >
+                <el-table-column type="selection" width="44" />
+                <el-table-column prop="name" label="Topic" min-width="200" show-overflow-tooltip />
+                <el-table-column prop="type" label="Type" min-width="180" show-overflow-tooltip />
+              </el-table>
 
-                  <el-alert v-if="slot.error" :title="slot.error" type="warning" :closable="false" show-icon />
+              <div class="action-row">
+                <el-button type="primary" size="small" @click="handleSubscribeSelected">Subscribe Selected</el-button>
+                <el-button size="small" @click="subscribeCommonPerceptionTopics">订阅常见感知</el-button>
+              </div>
+
+              <el-form label-position="top">
+                <el-form-item label="手动输入 topics（逗号/换行分隔）">
+                  <el-input
+                    v-model="manualTopicsInput"
+                    type="textarea"
+                    :rows="3"
+                    placeholder="/points_raw, /tf\n/marker_array"
+                  />
+                </el-form-item>
+                <el-form-item>
+                  <el-button size="small" @click="handleSubscribeManual">Add/Subscribe</el-button>
+                </el-form-item>
+              </el-form>
+
+              <div class="recent-wrapper">
+                <div class="sub-title">最近订阅组</div>
+                <div class="action-row">
+                  <el-button size="small" @click="subscribeRecent" :disabled="!recentTopicGroup.length">Subscribe Recent</el-button>
+                </div>
+                <el-scrollbar max-height="90px">
+                  <div class="recent-list">{{ recentTopicGroup.join(', ') || '-' }}</div>
+                </el-scrollbar>
+              </div>
+
+              <div class="preset-wrapper">
+                <div class="sub-title">订阅预设</div>
+                <el-input v-model="presetNameInput" placeholder="预设名，如 perception-default" size="small" />
+                <div class="action-row">
+                  <el-button size="small" @click="saveCurrentAsPreset" :disabled="!subscribedRows.length || !presetNameInput.trim()">
+                    保存当前订阅
+                  </el-button>
+                </div>
+                <el-select v-model="selectedPresetName" placeholder="选择预设" class="full-width" clearable size="small">
+                  <el-option v-for="item in presetNames" :key="item" :label="item" :value="item" />
+                </el-select>
+                <div class="action-row">
+                  <el-button size="small" :disabled="!selectedPresetName" @click="applySelectedPreset">应用预设</el-button>
+                  <el-button size="small" type="danger" :disabled="!selectedPresetName" @click="deleteSelectedPreset">删除预设</el-button>
                 </div>
               </div>
+
+              <el-divider />
+
+              <div class="list-title-row">
+                <div class="sub-title">已订阅</div>
+                <el-button size="small" type="danger" @click="handleUnsubscribeAll" :disabled="!subscribedRows.length">
+                  Unsubscribe All
+                </el-button>
+              </div>
+
+              <el-table :data="subscribedRows" height="260" size="small">
+                <el-table-column prop="name" label="Topic" min-width="180" show-overflow-tooltip />
+                <el-table-column prop="type" label="Type" min-width="170" show-overflow-tooltip />
+                <el-table-column prop="rate" label="Hz(5s)" width="78" />
+                <el-table-column prop="lastUpdateText" label="Latest" width="130" />
+                <el-table-column label="Action" width="110">
+                  <template #default="scope">
+                    <el-button link type="danger" @click="handleUnsubscribe(scope.row.name)">Unsubscribe</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
             </el-card>
           </el-col>
 
-          <el-col :xs="24" :md="12">
-            <el-card class="panel-card small-card">
+          <el-col :xs="24" :lg="16">
+            <el-card class="panel-card">
               <template #header>
-                <div class="card-header">TF Tree</div>
+                <div class="card-header">3D Viewer</div>
               </template>
 
-              <div class="tf-frame-count">frames: {{ tfFrames.length }}</div>
-              <el-scrollbar max-height="250px">
-                <div v-if="tfRelations.length">
-                  <div v-for="item in tfRelations" :key="`${item.parent}-${item.child}`" class="tf-line">
-                    {{ item.parent }} -> {{ item.child }}
+              <div class="viewer-toolbar">
+                <el-select v-model="fixedFrame" filterable allow-create default-first-option placeholder="Fixed Frame">
+                  <el-option v-for="item in fixedFrameOptions" :key="item" :label="item" :value="item" />
+                </el-select>
+                <el-switch v-model="renderPaused" active-text="暂停渲染" inactive-text="渲染中" />
+                <el-input-number v-model="pointCloudRenderHz" :min="1" :max="30" label="点云Hz" />
+                <el-input-number v-model="markerRenderHz" :min="1" :max="30" label="MarkerHz" />
+                <el-input-number v-model="pointSize" :min="0.02" :max="1" :step="0.02" label="点大小" />
+                <el-input-number v-model="maxPointCloudPoints" :min="10000" :step="10000" label="点数上限" />
+                <el-switch v-model="showGrid" active-text="Grid" inactive-text="No Grid" />
+                <el-switch v-model="showAxes" active-text="Axes" inactive-text="No Axes" />
+                <el-switch v-model="showPointCloud" active-text="点云开" inactive-text="点云关" />
+                <el-switch v-model="showMarkers" active-text="Marker开" inactive-text="Marker关" />
+                <el-button @click="resetCamera('default')">重置视角</el-button>
+                <el-button @click="resetCamera('top')">俯视</el-button>
+                <el-button @click="resetCamera('front')">前视</el-button>
+              </div>
+
+              <div ref="threeContainerRef" class="three-canvas" />
+            </el-card>
+
+            <el-row :gutter="16" class="sub-view-row">
+              <el-col :xs="24" :md="12">
+                <el-card class="panel-card small-card">
+                  <template #header>
+                    <div class="card-header">Image Viewer</div>
+                  </template>
+
+                  <div class="image-grid">
+                    <div v-for="slot in imageSlots" :key="slot.id" class="image-slot">
+                      <el-select v-model="slot.topic" placeholder="选择图像 topic" class="full-width" clearable size="small">
+                        <el-option v-for="item in imageTopicOptions" :key="`${slot.id}-${item.name}`" :label="item.name" :value="item.name" />
+                      </el-select>
+
+                      <div class="image-box">
+                        <img v-if="slot.src" :src="slot.src" alt="ROS Image" class="ros-image" />
+                        <div v-else class="placeholder">未收到图像消息</div>
+                      </div>
+
+                      <el-alert v-if="slot.error" :title="slot.error" type="warning" :closable="false" show-icon />
+                    </div>
                   </div>
-                </div>
-                <div v-else class="placeholder">暂无 TF 数据</div>
-              </el-scrollbar>
+                </el-card>
+              </el-col>
+
+              <el-col :xs="24" :md="12">
+                <el-card class="panel-card small-card">
+                  <template #header>
+                    <div class="card-header">TF Tree</div>
+                  </template>
+
+                  <div class="tf-frame-count">frames: {{ tfFrames.length }}</div>
+                  <el-scrollbar max-height="250px">
+                    <div v-if="tfRelations.length">
+                      <div v-for="item in tfRelations" :key="`${item.parent}-${item.child}`" class="tf-line">
+                        {{ item.parent }} -> {{ item.child }}
+                      </div>
+                    </div>
+                    <div v-else class="placeholder">暂无 TF 数据</div>
+                  </el-scrollbar>
+                </el-card>
+              </el-col>
+            </el-row>
+
+            <el-card class="panel-card raw-card">
+              <template #header>
+                <div class="card-header">Raw / JSON</div>
+              </template>
+
+              <el-select v-model="selectedRawTopic" placeholder="选择 topic" class="full-width" clearable>
+                <el-option v-for="item in subscribedRows" :key="item.name" :label="item.name" :value="item.name" />
+              </el-select>
+
+              <div class="friendly-value" v-if="rawFriendlyValue">{{ rawFriendlyValue }}</div>
+              <pre class="json-box">{{ rawMessageText || '暂无消息' }}</pre>
             </el-card>
           </el-col>
         </el-row>
+      </template>
 
-        <el-card class="panel-card raw-card">
+      <template v-else>
+        <el-card v-if="vncTabInitialized" class="panel-card">
           <template #header>
-            <div class="card-header">Raw / JSON</div>
+            <div class="card-header">VNC / RViz Viewer</div>
           </template>
 
-          <el-select v-model="selectedRawTopic" placeholder="选择 topic" class="full-width" clearable>
-            <el-option v-for="item in subscribedRows" :key="item.name" :label="item.name" :value="item.name" />
-          </el-select>
+          <el-form :model="vncForm" label-width="140px" class="vnc-form">
+            <el-form-item label="noVNC Web URL">
+              <el-input
+                v-model="vncForm.url"
+                placeholder="http://<ros-ip>:6080/vnc.html?host=<ros-ip>&port=6080"
+                clearable
+              />
+            </el-form-item>
+            <el-form-item label="VNC 密码(可选)">
+              <el-input v-model="vncForm.passwordHint" show-password placeholder="通常在 noVNC 页面内输入" clearable />
+            </el-form-item>
+            <el-form-item label="打开方式">
+              <el-switch v-model="vncForm.openInIframe" active-text="iframe 内嵌" inactive-text="新窗口" />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="handleOpenVnc">Open</el-button>
+              <el-button @click="handleReloadVnc">Reload</el-button>
+              <el-button @click="handleVncFullscreen" :disabled="!vncForm.openInIframe || !vncIframeSrc">Fullscreen</el-button>
+            </el-form-item>
+          </el-form>
 
-          <div class="friendly-value" v-if="rawFriendlyValue">{{ rawFriendlyValue }}</div>
-          <pre class="json-box">{{ rawMessageText || '暂无消息' }}</pre>
+          <el-alert
+            v-if="vncStatusHint"
+            :title="vncStatusHint"
+            :type="vncStatusType"
+            :closable="false"
+            show-icon
+            class="vnc-alert"
+          />
+
+          <el-descriptions :column="1" border>
+            <el-descriptions-item label="当前地址">{{ vncIframeSrc || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="加载状态">{{ vncLoadState }}</el-descriptions-item>
+            <el-descriptions-item label="错误信息">{{ vncLoadError || '-' }}</el-descriptions-item>
+          </el-descriptions>
+
+          <div ref="vncContainerRef" class="vnc-container">
+            <div v-if="!vncForm.openInIframe || !vncIframeSrc" class="placeholder vnc-placeholder">
+              请选择 iframe 模式并点击 Open 载入 noVNC 页面
+            </div>
+            <!-- 保留 iframe 实例，切换 Tab 不销毁，避免重复握手导致体验抖动 -->
+            <iframe
+              v-show="vncForm.openInIframe && !!vncIframeSrc"
+              ref="vncIframeRef"
+              class="vnc-iframe"
+              :src="vncIframeSrc"
+              allowfullscreen
+              @load="handleVncIframeLoad"
+              @error="handleVncIframeError"
+            />
+          </div>
+
+          <div class="vnc-tips">
+            <div>提示：noVNC 常见 Web 端口为 <code>6080</code>，VNC 服务端口常见为 <code>5901 (:1)</code>。</div>
+            <div>提示：浏览器访问时不要用 <code>localhost</code>（除非浏览器也在服务器上）。</div>
+          </div>
         </el-card>
-      </el-col>
-    </el-row>
+        <el-card v-else class="panel-card">
+          <div class="placeholder">切换到该页签后初始化 VNC Viewer。</div>
+        </el-card>
+      </template>
+    </div>
   </div>
 </template>
 
@@ -255,6 +327,7 @@
 import axios from 'axios';
 import { ElMessage } from 'element-plus';
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
@@ -269,6 +342,7 @@ const BACKEND_URL_KEY = 'rosctl_backend_base_url';
 const RECENT_TOPICS_KEY = 'ros_perception_recent_topics';
 const TOPIC_PRESETS_KEY = 'ros_perception_topic_presets';
 const IMAGE_SLOT_COUNT = 5;
+const VNC_PASSWORD_KEY = 'ros_vnc_password_hint';
 
 const controlForm = reactive({
   backendBaseUrl: localStorage.getItem(BACKEND_URL_KEY) || '',
@@ -284,6 +358,22 @@ const connectionForm = reactive({
   wsUrl: '',
   autoConnectWhenRunning: true,
 });
+
+const route = useRoute();
+const currentViewerPage = computed<'web' | 'vnc'>(() => (route.path.endsWith('/vnc') ? 'vnc' : 'web'));
+const vncTabInitialized = ref(false);
+const vncForm = reactive({
+  url: '',
+  passwordHint: localStorage.getItem(VNC_PASSWORD_KEY) || '',
+  openInIframe: true,
+});
+const vncIframeSrc = ref('');
+const vncLoadState = ref<'IDLE' | 'LOADING' | 'LOADED' | 'ERROR'>('IDLE');
+const vncLoadError = ref('');
+const vncStatusHint = ref('');
+const vncStatusType = ref<'info' | 'warning' | 'success'>('info');
+const vncContainerRef = ref<HTMLDivElement | null>(null);
+const vncIframeRef = ref<HTMLIFrameElement | null>(null);
 
 const statusData = reactive<RosStatusResponse>({
   status: '',
@@ -475,6 +565,23 @@ watch(
 );
 
 watch(
+  () => vncForm.passwordHint,
+  (value) => {
+    localStorage.setItem(VNC_PASSWORD_KEY, value.trim());
+  },
+);
+
+watch(
+  () => currentViewerPage.value,
+  (page) => {
+    if (page === 'vnc') {
+      vncTabInitialized.value = true;
+    }
+  },
+  { immediate: true },
+);
+
+watch(
   () => statusPollingEnabled.value,
   () => {
     restartStatusPolling();
@@ -575,6 +682,15 @@ const applyStatus = (payload: RosStatusResponse) => {
 
   if (payload.wsUrl) {
     connectionForm.wsUrl = payload.wsUrl;
+  }
+
+  if (payload.vncUrl) {
+    vncForm.url = payload.vncUrl;
+    vncStatusHint.value = '已从后端 status 自动填充 vncUrl';
+    vncStatusType.value = 'success';
+  } else {
+    vncStatusHint.value = '后端未提供 vncUrl，可手动填入 noVNC 地址（内网）';
+    vncStatusType.value = 'warning';
   }
 
   if (payload.status === 'ERROR' && payload.message) {
@@ -685,6 +801,71 @@ const handleConnect = async () => {
 const handleDisconnect = () => {
   rosClient.disconnect();
   clearAllSubscriptions(true);
+};
+
+const normalizeVncUrl = (input: string) => input.trim();
+
+const handleOpenVnc = () => {
+  const url = normalizeVncUrl(vncForm.url);
+  if (!url) {
+    ElMessage.warning('请先填写 noVNC URL');
+    return;
+  }
+
+  vncLoadError.value = '';
+  if (vncForm.openInIframe) {
+    vncLoadState.value = 'LOADING';
+    vncIframeSrc.value = url;
+    return;
+  }
+
+  const popup = window.open(url, '_blank', 'noopener,noreferrer');
+  if (!popup) {
+    vncLoadState.value = 'ERROR';
+    vncLoadError.value = '浏览器拦截了弹窗，请允许新窗口打开';
+    ElMessage.error(vncLoadError.value);
+    return;
+  }
+  vncLoadState.value = 'LOADED';
+};
+
+const handleReloadVnc = () => {
+  if (!vncForm.openInIframe) {
+    handleOpenVnc();
+    return;
+  }
+
+  const url = normalizeVncUrl(vncForm.url);
+  if (!url) {
+    ElMessage.warning('请先填写 noVNC URL');
+    return;
+  }
+
+  vncLoadState.value = 'LOADING';
+  vncLoadError.value = '';
+  vncIframeSrc.value = '';
+  window.setTimeout(() => {
+    vncIframeSrc.value = url;
+  }, 0);
+};
+
+const handleVncIframeLoad = () => {
+  vncLoadState.value = 'LOADED';
+  vncLoadError.value = '';
+};
+
+const handleVncIframeError = () => {
+  vncLoadState.value = 'ERROR';
+  vncLoadError.value = 'iframe 加载失败，请检查 noVNC 地址和网络连通性';
+};
+
+const handleVncFullscreen = async () => {
+  if (!vncContainerRef.value) return;
+  try {
+    await vncContainerRef.value.requestFullscreen();
+  } catch {
+    ElMessage.error('全屏失败，请检查浏览器权限');
+  }
 };
 
 const refreshTopics = async () => {
@@ -1479,6 +1660,10 @@ onBeforeUnmount(() => {
   margin-bottom: 16px;
 }
 
+.content-tabs {
+  margin-top: 4px;
+}
+
 .action-row {
   display: flex;
   gap: 8px;
@@ -1594,6 +1779,44 @@ onBeforeUnmount(() => {
 
 .raw-card {
   margin-top: 16px;
+}
+
+.vnc-form {
+  max-width: 980px;
+}
+
+.vnc-alert {
+  margin-bottom: 10px;
+}
+
+.vnc-container {
+  margin-top: 14px;
+  width: 100%;
+  min-height: 70vh;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #0b1220;
+  overflow: hidden;
+}
+
+.vnc-iframe {
+  width: 100%;
+  height: 70vh;
+  border: 0;
+}
+
+.vnc-placeholder {
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vnc-tips {
+  margin-top: 12px;
+  font-size: 12px;
+  line-height: 1.8;
+  color: #4b5563;
 }
 
 .friendly-value {

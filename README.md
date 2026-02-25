@@ -99,6 +99,50 @@ sudo nginx -t && sudo systemctl reload nginx
 2. 选择 Rosbridge 连接。
 3. 粘贴页面展示的 `wsUrl` 并连接。
 
+## ROS 感知查看：VNC / RViz 方案
+
+左侧菜单 `ROSBag Play` 下提供两个页面：
+
+- `Web 方案`（`/rosbag-play/web`）：基于 rosbridge 的网页可视化。
+- `VNC / RViz`（`/rosbag-play/vnc`）：通过 noVNC 访问服务器原生 RViz 桌面（适合插件/完全一致视图）。
+
+### noVNC 运维侧准备
+
+服务端需要先启动 VNC 和 noVNC/websockify，示例：
+
+```bash
+websockify --web=/usr/share/novnc/ 6080 localhost:5901
+```
+
+浏览器访问示例：
+
+```text
+http://<ros-ip>:6080/vnc.html
+```
+
+若后端 `GET /api/v1/ros/status` 返回 `vncUrl`，前端会自动回填到 VNC 页面；未返回时可手动填写。
+
+### 状态字段兼容
+
+`/api/v1/ros/status` 前端兼容字段：
+
+- `wsUrl: string`
+- `vncUrl?: string`
+- `message?: string`
+
+### VNC 使用说明
+
+- VNC 密码通常在 noVNC 页面内输入，本页面仅提供便捷入口与可选提示保存。
+- noVNC 常见 Web 端口是 `6080`，VNC 端口常见是 `5901 (:1)`。
+- 不要使用 `localhost`（除非浏览器与 noVNC 服务在同一台机器）。
+
+### 常见问题
+
+- 黑屏：确认 RViz 正在服务器图形会话中运行，且 DISPLAY 指向正确。
+- 连接失败：检查 `6080/5901` 端口、防火墙、安全组与反向代理配置。
+- 页面打不开：确认 noVNC 静态目录路径正确（`--web=/usr/share/novnc/`）。
+- 使用 `localhost` 失败：浏览器会访问本机而非远端服务器，请改为服务器内网/公网 IP。
+
 ### 前后端不在同一服务器时的配置
 
 如果前端和后端不在同一台服务器，按下面配置：
