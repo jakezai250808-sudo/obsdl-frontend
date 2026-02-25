@@ -17,33 +17,6 @@ npm run dev
 VITE_API_BASE_URL=http://localhost:8080/api
 ```
 
-## API 转发到不同服务器（开发环境）
-
-如果前端和后端不在同一台服务器，开发阶段推荐用 Vite 代理统一转发，避免浏览器跨域：
-
-1. 在项目根目录创建 `.env.local`：
-
-```env
-# 普通业务 API（例如 /api/tasks、/api/accounts）
-VITE_PROXY_API_TARGET=http://10.0.0.8:8080
-
-# 可选：ROS API 单独转发（例如 /api/v1/ros/*）
-# 不配置时默认与 VITE_PROXY_API_TARGET 一致
-VITE_PROXY_ROS_TARGET=http://10.0.0.9:8081
-```
-
-2. 启动开发服务：
-
-```bash
-npm run dev
-```
-
-3. 前端继续请求相对路径（如 `/api/...`），Vite 会按规则转发：
-   - `/api/v1/ros/*` -> `VITE_PROXY_ROS_TARGET`
-   - 其他 `/api/*` -> `VITE_PROXY_API_TARGET`
-
-> 说明：上面是**开发环境代理**。生产环境通常在 Nginx/网关层做同样的路径转发。
-
 ## ROS 控制台页面
 
 新增页面入口：左侧菜单 **ROS 控制台**（路由 `/ros-control`）。
