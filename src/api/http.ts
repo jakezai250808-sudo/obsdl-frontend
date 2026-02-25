@@ -23,12 +23,22 @@ const isApiEnvelope = (value: unknown): value is ApiEnvelope => {
 http.interceptors.response.use(
   (response) => {
     if (isApiEnvelope(response.data)) {
+      if (response.data.code !== 0) {
+        const error = new Error(response.data.message || '请求失败') as Error & {
+          response?: { data?: unknown };
+        };
+        error.response = { data: response.data };
+        return Promise.reject(error);
+      }
       response.data = response.data.data;
     }
     return response;
   },
   (error) => {
-    const message = error?.response?.data?.message || error?.message || '请求失败';
+    if (axios.isCancel(error)) {
+      return Promise.reject(error);
+    }
+    const message = error?.response?.data?.message || (!error?.response ? '网络异常，请稍后重试' : error?.message) || '请求失败';
     ElMessage.error(message);
     return Promise.reject(error);
   },

@@ -16,12 +16,13 @@ export interface Task {
   status: 'pending' | 'running' | 'success' | 'failed';
   accountId: number;
   bucket: string;
-  targetPath: string;
+  targetPath?: string;
   createdAt: string;
+  objects?: TaskObject[];
 }
 
 export interface TaskObject {
-  id: number;
+  id?: number;
   objectKey: string;
   status: 'pending' | 'running' | 'success' | 'failed';
   size: number;
