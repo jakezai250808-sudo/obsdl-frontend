@@ -250,6 +250,36 @@
               <div class="friendly-value" v-if="rawFriendlyValue">{{ rawFriendlyValue }}</div>
               <pre class="json-box">{{ rawMessageText || '暂无消息' }}</pre>
             </el-card>
+
+            <el-card class="panel-card rvizweb-card">
+              <template #header>
+                <div class="card-header">内嵌 RVizWeb（/rviz/）</div>
+              </template>
+
+              <el-form :inline="true" class="rvizweb-form">
+                <el-form-item label="iframe URL">
+                  <el-input v-model="rvizWebForm.url" placeholder="/rviz/" clearable class="rvizweb-url-input" />
+                </el-form-item>
+                <el-form-item>
+                  <el-button type="primary" @click="handleOpenRvizWebInIframe">载入</el-button>
+                  <el-button @click="handleReloadRvizWebIframe" :disabled="!rvizWebIframeSrc">刷新</el-button>
+                  <el-button @click="handleRvizWebFullscreen" :disabled="!rvizWebIframeSrc">全屏</el-button>
+                  <el-button @click="handlePopoutRvizWeb" :disabled="!rvizWebIframeSrc">新窗口打开</el-button>
+                </el-form-item>
+              </el-form>
+
+              <div ref="rvizWebContainerRef" class="rvizweb-container">
+                <div v-if="!rvizWebIframeSrc" class="placeholder rvizweb-placeholder">点击“载入”后在此展示 /rviz/ 页面</div>
+                <iframe
+                  v-show="!!rvizWebIframeSrc"
+                  ref="rvizWebIframeRef"
+                  class="rvizweb-iframe"
+                  :src="rvizWebIframeSrc"
+                  allow="fullscreen"
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                />
+              </div>
+            </el-card>
           </el-col>
         </el-row>
       </template>
@@ -376,6 +406,13 @@ const vncStatusHint = ref('');
 const vncStatusType = ref<'info' | 'warning' | 'success'>('info');
 const vncContainerRef = ref<HTMLDivElement | null>(null);
 const vncIframeRef = ref<HTMLIFrameElement | null>(null);
+
+const rvizWebForm = reactive({
+  url: '/rviz/',
+});
+const rvizWebIframeSrc = ref('');
+const rvizWebContainerRef = ref<HTMLDivElement | null>(null);
+const rvizWebIframeRef = ref<HTMLIFrameElement | null>(null);
 
 const statusData = reactive<RosStatusResponse>({
   status: '',
@@ -829,6 +866,35 @@ const handleOpenVnc = () => {
     return;
   }
   vncLoadState.value = 'LOADED';
+};
+
+const resolveRvizWebUrl = () => {
+  const raw = rvizWebForm.url.trim();
+  if (!raw) return '/rviz/';
+  return raw;
+};
+
+const handleOpenRvizWebInIframe = () => {
+  rvizWebIframeSrc.value = resolveRvizWebUrl();
+};
+
+const handleReloadRvizWebIframe = () => {
+  if (!rvizWebIframeRef.value || !rvizWebIframeSrc.value) return;
+  rvizWebIframeRef.value.src = rvizWebIframeSrc.value;
+};
+
+const handleRvizWebFullscreen = async () => {
+  if (!rvizWebContainerRef.value || !rvizWebIframeSrc.value) return;
+  try {
+    await rvizWebContainerRef.value.requestFullscreen();
+  } catch {
+    ElMessage.warning('浏览器阻止了全屏，请手动允许后重试');
+  }
+};
+
+const handlePopoutRvizWeb = () => {
+  const target = rvizWebIframeSrc.value || resolveRvizWebUrl();
+  window.open(target, '_blank', 'noopener,noreferrer');
 };
 
 const handleReloadVnc = () => {
@@ -1601,6 +1667,7 @@ const initThree = () => {
 
 onMounted(async () => {
   initThree();
+  handleOpenRvizWebInIframe();
   restartStatusPolling();
   await refreshStatus();
 
@@ -1781,6 +1848,42 @@ onBeforeUnmount(() => {
 
 .raw-card {
   margin-top: 16px;
+}
+
+
+.rvizweb-card {
+  margin-top: 16px;
+}
+
+.rvizweb-form {
+  margin-bottom: 8px;
+}
+
+.rvizweb-url-input {
+  min-width: 340px;
+}
+
+.rvizweb-container {
+  width: 100%;
+  height: 72vh;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #0b1220;
+  overflow: hidden;
+}
+
+.rvizweb-iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.rvizweb-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .vnc-form {
