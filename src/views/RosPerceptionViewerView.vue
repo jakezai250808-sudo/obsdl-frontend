@@ -280,7 +280,7 @@
           </el-form>
 
           <el-alert
-            title="说明：这里输入的是 rosbridge wsUrl，不是 iframe URL。页面会自动拼接到 /rviz/?ws=..."
+            title="说明：这里输入的是 rosbridge wsUrl，不是 iframe URL。页面会自动拼接到 /rviz/index.html?ws=...（无需后端 nginx 也可加载）"
             type="info"
             :closable="false"
             show-icon
@@ -895,7 +895,8 @@ const handleOpenVnc = () => {
 
 const resolveRvizWebUrl = () => {
   const rawWsUrl = rvizWebForm.wsUrl.trim() || '/rosbridge/';
-  return `/rviz/?ws=${encodeURIComponent(rawWsUrl)}`;
+  // 走前端自身静态资源路径，后端未部署 nginx 时也可直接加载页面。
+  return `/rviz/index.html?ws=${encodeURIComponent(rawWsUrl)}`;
 };
 
 const handleOpenRvizWebInIframe = () => {

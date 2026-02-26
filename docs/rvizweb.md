@@ -11,6 +11,18 @@ ROS_MASTER_URI=http://<ros-master-ip>:11311 docker compose up -d
 
 > 说明：`nginx` 统一暴露 `/rviz/`（前端）与 `/rosbridge/`（WebSocket）。
 
+
+## 1.1 无后端 nginx 时（临时调试）
+
+如果后端还没部署 nginx，前端仍可通过自身静态资源加载 RVizWeb 页面：
+
+- 菜单进入：`ROSBag Play -> 内嵌 RVizWeb`
+- 填写 `rosbridge wsUrl`（例如 `ws://<ros-host>:9090`）
+- 点击“载入”后会打开：`/rviz/index.html?ws=...`
+
+> 该路径来自前端 `public/rviz/`，不依赖后端 `/rviz/` 反向代理。
+
+
 ## 2. iframe 集成示例
 
 ```html
