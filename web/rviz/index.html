@@ -117,6 +117,14 @@
           <input id="markerTopicInput" type="text" />
         </div>
         <div class="row">
+          <span>Marker 类型</span>
+          <select id="markerTypeSelect">
+            <option value="auto">auto(推荐)</option>
+            <option value="marker">visualization_msgs/Marker</option>
+            <option value="markerArray">visualization_msgs/MarkerArray</option>
+          </select>
+        </div>
+        <div class="row">
           <span>PointCloud Topic</span>
           <input id="cloudTopicInput" type="text" />
         </div>
@@ -143,7 +151,7 @@
           <span id="fpsLabel">-</span>
         </div>
         <div id="error"></div>
-        <div id="hint">提示：先点击 3D 区域聚焦，再使用快捷键；滚轮/拖拽不会穿透到父页面。</div>
+        <div id="hint">提示：先点击 3D 区域聚焦，再使用快捷键；滚轮/拖拽不会穿透到父页面。<br/>配置说明：fixed frame 是全局参考坐标系；Marker 类型建议 auto 自动识别；PointCloud 默认关闭以提升性能。</div>
       </div>
     </div>
 

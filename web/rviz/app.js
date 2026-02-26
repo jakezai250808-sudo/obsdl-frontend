@@ -5,6 +5,7 @@
     fixed: 'map',
     cloud: '/points_raw',
     marker: '/visualization_marker',
+    markerType: 'auto',
   };
 
   const state = {
@@ -12,13 +13,13 @@
     fixedFrame: params.get('fixed') || defaults.fixed,
     cloudTopic: params.get('cloud') || defaults.cloud,
     markerTopic: params.get('marker') || defaults.marker,
+    markerType: params.get('markerType') || defaults.markerType,
     autoReconnect: params.get('reconnect') !== '0',
     showMarker: params.get('markerOn') !== '0',
     showPointCloud: params.get('cloudOn') === '1',
     reconnectDelayMs: 2000,
     isManualDisconnect: false,
     connected: false,
-    cloudMessageCount: 0,
     cloudMessageRatio: 2,
     cloudThrottleRateMs: 100,
   };
@@ -31,6 +32,7 @@
     fixedFrameSelect: document.getElementById('fixedFrameSelect'),
     cloudTopicInput: document.getElementById('cloudTopicInput'),
     markerTopicInput: document.getElementById('markerTopicInput'),
+    markerTypeSelect: document.getElementById('markerTypeSelect'),
     autoReconnectInput: document.getElementById('autoReconnectInput'),
     markerToggle: document.getElementById('markerToggle'),
     cloudToggle: document.getElementById('cloudToggle'),
@@ -48,16 +50,17 @@
   let cloudClient = null;
   let reconnectTimer = null;
 
-  const defaultCamera = {
-    x: 3,
-    y: 3,
-    z: 3,
-  };
+  const defaultCamera = { x: 3, y: 3, z: 3 };
 
   function setStatus(label, cls, errorMessage = '') {
     ui.status.textContent = label;
     ui.status.className = `status ${cls}`;
     ui.error.textContent = errorMessage;
+  }
+
+  function setNonFatalError(message) {
+    if (!message) return;
+    ui.error.textContent = message;
   }
 
   function applyQueryToUi() {
@@ -72,6 +75,11 @@
       ui.fixedFrameSelect.add(new Option(state.fixedFrame, state.fixedFrame));
     }
     ui.fixedFrameSelect.value = state.fixedFrame;
+
+    if (![...ui.markerTypeSelect.options].some((opt) => opt.value === state.markerType)) {
+      state.markerType = defaults.markerType;
+    }
+    ui.markerTypeSelect.value = state.markerType;
   }
 
   function updateUrlQuery() {
@@ -80,6 +88,7 @@
     q.set('fixed', state.fixedFrame);
     q.set('cloud', state.cloudTopic);
     q.set('marker', state.markerTopic);
+    q.set('markerType', state.markerType);
     q.set('reconnect', state.autoReconnect ? '1' : '0');
     q.set('markerOn', state.showMarker ? '1' : '0');
     q.set('cloudOn', state.showPointCloud ? '1' : '0');
@@ -121,9 +130,7 @@
 
   function setupTfClient() {
     if (!ros) return;
-    if (tfClient) {
-      tfClient.dispose();
-    }
+    if (tfClient) tfClient.dispose();
 
     tfClient = new ROSLIB.TFClient({
       ros,
@@ -143,16 +150,34 @@
     }
   }
 
+  function inferMarkerTypeFromTopic(topic) {
+    if (!topic) return 'marker';
+    if (topic.toLowerCase().includes('array')) return 'markerArray';
+    return 'marker';
+  }
+
   function setupMarkerClient() {
     teardownMarkerClient();
-    if (!ros || !tfClient || !state.showMarker) return;
+    if (!ros || !tfClient || !state.showMarker || !state.markerTopic) return;
 
-    markerClient = new ROS3D.MarkerClient({
+    const resolvedType = state.markerType === 'auto' ? inferMarkerTypeFromTopic(state.markerTopic) : state.markerType;
+    const common = {
       ros,
       tfClient,
       topic: state.markerTopic,
       rootObject: viewer.scene,
-    });
+    };
+
+    markerClient =
+      resolvedType === 'markerArray'
+        ? new ROS3D.MarkerArrayClient(common)
+        : new ROS3D.MarkerClient(common);
+
+    setNonFatalError(
+      state.markerType === 'auto'
+        ? `Marker 类型自动识别为 ${resolvedType}。如展示异常可手动切换。`
+        : ''
+    );
   }
 
   function teardownCloudClient() {
@@ -183,9 +208,7 @@
     if (ros) {
       try {
         ros.close();
-      } catch (_) {
-        // ignore close errors
-      }
+      } catch (_) {}
     }
 
     setStatus('Connecting...', 'connecting');
@@ -201,7 +224,12 @@
     });
 
     ros.on('error', (err) => {
-      setStatus('Error', 'error', `连接错误: ${err?.message || err || 'unknown'}`);
+      const msg = `连接错误: ${err?.message || err || 'unknown'}`;
+      if (state.connected) {
+        setNonFatalError(msg);
+      } else {
+        setStatus('Error', 'error', msg);
+      }
     });
 
     ros.on('close', () => {
@@ -224,9 +252,7 @@
   function disconnectRos() {
     clearTimeout(reconnectTimer);
     state.isManualDisconnect = true;
-    if (ros) {
-      ros.close();
-    }
+    if (ros) ros.close();
   }
 
   function refreshSubscriptions() {
@@ -242,13 +268,7 @@
       event.stopPropagation();
     };
 
-    ui.viewer.addEventListener(
-      'wheel',
-      (event) => {
-        passthroughBlocker(event);
-      },
-      { passive: false }
-    );
+    ui.viewer.addEventListener('wheel', (event) => passthroughBlocker(event), { passive: false });
 
     ui.viewer.addEventListener('pointerdown', (event) => {
       ui.viewer.focus();
@@ -258,12 +278,8 @@
     ui.viewer.addEventListener('pointermove', (event) => {
       if (event.buttons) passthroughBlocker(event);
     });
-    ui.viewer.addEventListener('pointerup', () => {
-      ui.viewer.classList.remove('dragging');
-    });
-    ui.viewer.addEventListener('pointerleave', () => {
-      ui.viewer.classList.remove('dragging');
-    });
+    ui.viewer.addEventListener('pointerup', () => ui.viewer.classList.remove('dragging'));
+    ui.viewer.addEventListener('pointerleave', () => ui.viewer.classList.remove('dragging'));
 
     ui.viewer.addEventListener('keydown', (event) => {
       if (event.key.toLowerCase() === 'r') {
@@ -299,13 +315,8 @@
       connectRos();
     });
 
-    ui.disconnectBtn.addEventListener('click', () => {
-      disconnectRos();
-    });
-
-    ui.resetViewBtn.addEventListener('click', () => {
-      resetView();
-    });
+    ui.disconnectBtn.addEventListener('click', disconnectRos);
+    ui.resetViewBtn.addEventListener('click', resetView);
 
     ui.fullscreenBtn.addEventListener('click', async () => {
       if (!document.fullscreenElement) {
@@ -329,6 +340,12 @@
 
     ui.markerTopicInput.addEventListener('change', () => {
       state.markerTopic = ui.markerTopicInput.value.trim() || defaults.marker;
+      updateUrlQuery();
+      setupMarkerClient();
+    });
+
+    ui.markerTypeSelect.addEventListener('change', () => {
+      state.markerType = ui.markerTypeSelect.value;
       updateUrlQuery();
       setupMarkerClient();
     });
