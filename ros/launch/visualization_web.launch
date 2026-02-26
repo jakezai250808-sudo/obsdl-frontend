@@ -1,0 +1,34 @@
+<launch>
+  <!-- 基础参数 -->
+  <arg name="base_frame" default="base_link" />
+  <arg name="fixed_frame" default="map" />
+  <arg name="tf_rate" default="20" />
+  <arg name="tf_frames" default="[map,odom,base_link,lidar_link,camera_link]" />
+
+  <arg name="cloud_topic" default="/points_raw" />
+  <arg name="cloud_rate" default="8" />
+  <arg name="cloud_output_topic" default="/web/points_throttled" />
+
+  <arg name="marker_topic" default="/visualization_marker" />
+  <arg name="marker_rate" default="10" />
+  <arg name="marker_output_topic" default="/web/visualization_marker_throttled" />
+
+  <!-- rosbridge 提供 WebSocket 服务 -->
+  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch">
+    <arg name="port" value="$(optenv ROSBRIDGE_PORT 9090)" />
+  </include>
+
+  <!-- 只转发必要 frame，降低前端负载 -->
+  <node pkg="tf2_web_republisher" type="tf2_web_republisher" name="tf2_web_republisher" output="screen">
+    <param name="rate" value="$(arg tf_rate)" />
+    <rosparam param="frames">$(arg tf_frames)</rosparam>
+    <param name="angular_thres" value="0.05" />
+    <param name="trans_thres" value="0.01" />
+  </node>
+
+  <!-- 点云限频（默认订阅 throttled topic）-->
+  <node pkg="topic_tools" type="throttle" name="cloud_throttle" args="messages $(arg cloud_topic) $(arg cloud_rate) $(arg cloud_output_topic)" output="screen" />
+
+  <!-- Marker 限频 -->
+  <node pkg="topic_tools" type="throttle" name="marker_throttle" args="messages $(arg marker_topic) $(arg marker_rate) $(arg marker_output_topic)" output="screen" />
+</launch>

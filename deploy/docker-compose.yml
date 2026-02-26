@@ -1,0 +1,92 @@
+version: '3.9'
+
+x-ros-env: &ros_env
+  ROS_MASTER_URI: "${ROS_MASTER_URI:-http://host.docker.internal:11311}"
+  ROS_IP: "${ROS_IP:-}"
+  ROS_HOSTNAME: "${ROS_HOSTNAME:-}"
+  ROS_NAMESPACE: "${ROS_NAMESPACE:-}"
+
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: rvizweb-nginx
+    ports:
+      - "${NGINX_PORT:-80}:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - rvizweb
+      - rosbridge
+    networks:
+      - rvizweb-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1/rviz/ >/dev/null 2>&1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+
+  rvizweb:
+    image: nginx:1.27-alpine
+    container_name: rvizweb-ui
+    volumes:
+      - ../web/rviz:/usr/share/nginx/html:ro
+    networks:
+      - rvizweb-net
+
+  rosbridge:
+    image: ros:noetic-ros-core
+    container_name: rvizweb-rosbridge
+    command: >
+      bash -lc "apt-get update && apt-get install -y --no-install-recommends ros-noetic-rosbridge-server &&
+      rm -rf /var/lib/apt/lists/* &&
+      source /opt/ros/noetic/setup.bash &&
+      roslaunch rosbridge_server rosbridge_websocket.launch port:=${ROSBRIDGE_PORT:-9090}"
+    environment:
+      <<: *ros_env
+      ROSBRIDGE_PORT: "${ROSBRIDGE_PORT:-9090}"
+    expose:
+      - "${ROSBRIDGE_PORT:-9090}"
+    networks:
+      - rvizweb-net
+    healthcheck:
+      test: ["CMD-SHELL", "bash -lc 'echo > /dev/tcp/127.0.0.1/${ROSBRIDGE_PORT:-9090}'"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+
+  tf2_web_republisher:
+    image: ros:noetic-ros-core
+    container_name: rvizweb-tf2
+    command: >
+      bash -lc "apt-get update && apt-get install -y --no-install-recommends ros-noetic-rosbridge-server ros-noetic-tf2-web-republisher ros-noetic-topic-tools &&
+      rm -rf /var/lib/apt/lists/* &&
+      source /opt/ros/noetic/setup.bash &&
+      roslaunch /ws/ros/launch/visualization_web.launch
+      base_frame:=${BASE_FRAME:-base_link}
+      fixed_frame:=${FIXED_FRAME:-map}
+      tf_rate:=${TF_RATE:-20}
+      cloud_topic:=${CLOUD_TOPIC:-/points_raw}
+      cloud_rate:=${CLOUD_RATE:-8}
+      marker_topic:=${MARKER_TOPIC:-/visualization_marker}
+      marker_rate:=${MARKER_RATE:-10}
+      tf_frames:='${TF_FRAMES:-[map,odom,base_link,lidar_link,camera_link]}'"
+    environment:
+      <<: *ros_env
+      BASE_FRAME: "${BASE_FRAME:-base_link}"
+      FIXED_FRAME: "${FIXED_FRAME:-map}"
+      TF_RATE: "${TF_RATE:-20}"
+      CLOUD_TOPIC: "${CLOUD_TOPIC:-/points_raw}"
+      CLOUD_RATE: "${CLOUD_RATE:-8}"
+      MARKER_TOPIC: "${MARKER_TOPIC:-/visualization_marker}"
+      MARKER_RATE: "${MARKER_RATE:-10}"
+      TF_FRAMES: "${TF_FRAMES:-[map,odom,base_link,lidar_link,camera_link]}"
+    volumes:
+      - ../ros:/ws/ros:ro
+    depends_on:
+      - rosbridge
+    networks:
+      - rvizweb-net
+
+networks:
+  rvizweb-net:
+    driver: bridge

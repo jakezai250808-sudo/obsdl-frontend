@@ -153,3 +153,9 @@ http://<ros-ip>:6080/vnc.html
    - `http://10.0.0.8:8080/api/v1/ros/start|stop|status`。
 3. 填写数据库中启用的 token 后再操作。
 4. 若出现“无法连接后端”或浏览器跨域报错，请让后端放开该前端域名的 CORS（至少允许 `X-CTRL-TOKEN` 请求头）。
+
+## RVizWeb 内网嵌入部署
+
+已提供完整部署清单（docker-compose、nginx 反代、ROS launch、iframe 示例、排障说明），请参考：
+
+- `docs/rvizweb.md`
