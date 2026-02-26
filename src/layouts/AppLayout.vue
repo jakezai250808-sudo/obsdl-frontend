@@ -8,6 +8,7 @@
         <el-sub-menu index="/rosbag-play">
           <template #title>ROSBag Play</template>
           <el-menu-item index="/rosbag-play/web">Web 方案</el-menu-item>
+          <el-menu-item index="/rosbag-play/rvizweb">内嵌 RVizWeb</el-menu-item>
           <el-menu-item index="/rosbag-play/vnc">VNC / RViz</el-menu-item>
         </el-sub-menu>
       </el-menu>

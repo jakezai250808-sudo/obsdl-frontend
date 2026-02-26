@@ -251,37 +251,54 @@
               <pre class="json-box">{{ rawMessageText || '暂无消息' }}</pre>
             </el-card>
 
-            <el-card class="panel-card rvizweb-card">
-              <template #header>
-                <div class="card-header">内嵌 RVizWeb（/rviz/）</div>
-              </template>
-
-              <el-form :inline="true" class="rvizweb-form">
-                <el-form-item label="iframe URL">
-                  <el-input v-model="rvizWebForm.url" placeholder="/rviz/" clearable class="rvizweb-url-input" />
-                </el-form-item>
-                <el-form-item>
-                  <el-button type="primary" @click="handleOpenRvizWebInIframe">载入</el-button>
-                  <el-button @click="handleReloadRvizWebIframe" :disabled="!rvizWebIframeSrc">刷新</el-button>
-                  <el-button @click="handleRvizWebFullscreen" :disabled="!rvizWebIframeSrc">全屏</el-button>
-                  <el-button @click="handlePopoutRvizWeb" :disabled="!rvizWebIframeSrc">新窗口打开</el-button>
-                </el-form-item>
-              </el-form>
-
-              <div ref="rvizWebContainerRef" class="rvizweb-container">
-                <div v-if="!rvizWebIframeSrc" class="placeholder rvizweb-placeholder">点击“载入”后在此展示 /rviz/ 页面</div>
-                <iframe
-                  v-show="!!rvizWebIframeSrc"
-                  ref="rvizWebIframeRef"
-                  class="rvizweb-iframe"
-                  :src="rvizWebIframeSrc"
-                  allow="fullscreen"
-                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                />
-              </div>
-            </el-card>
           </el-col>
         </el-row>
+      </template>
+
+
+      <template v-else-if="currentViewerPage === 'rvizweb'">
+        <el-card class="panel-card rvizweb-card">
+          <template #header>
+            <div class="card-header">内嵌 RVizWeb（/rviz/）</div>
+          </template>
+
+          <el-form :inline="true" class="rvizweb-form" label-width="140px">
+            <el-form-item label="rosbridge wsUrl">
+              <el-input
+                v-model="rvizWebForm.wsUrl"
+                placeholder="默认 /rosbridge/（支持 ws:// 或 /rosbridge/）"
+                clearable
+                class="rvizweb-url-input"
+              />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="handleOpenRvizWebInIframe">载入</el-button>
+              <el-button @click="handleReloadRvizWebIframe" :disabled="!rvizWebIframeSrc">刷新</el-button>
+              <el-button @click="handleRvizWebFullscreen" :disabled="!rvizWebIframeSrc">全屏</el-button>
+              <el-button @click="handlePopoutRvizWeb" :disabled="!rvizWebIframeSrc">新窗口打开</el-button>
+            </el-form-item>
+          </el-form>
+
+          <el-alert
+            title="说明：这里输入的是 rosbridge wsUrl，不是 iframe URL。页面会自动拼接到 /rviz/?ws=..."
+            type="info"
+            :closable="false"
+            show-icon
+            class="vnc-alert"
+          />
+
+          <div ref="rvizWebContainerRef" class="rvizweb-container">
+            <div v-if="!rvizWebIframeSrc" class="placeholder rvizweb-placeholder">点击“载入”后在此展示 /rviz/ 页面</div>
+            <iframe
+              v-show="!!rvizWebIframeSrc"
+              ref="rvizWebIframeRef"
+              class="rvizweb-iframe"
+              :src="rvizWebIframeSrc"
+              allow="fullscreen"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+            />
+          </div>
+        </el-card>
       </template>
 
       <template v-else>
@@ -392,7 +409,11 @@ const connectionForm = reactive({
 });
 
 const route = useRoute();
-const currentViewerPage = computed<'web' | 'vnc'>(() => (route.path.endsWith('/vnc') ? 'vnc' : 'web'));
+const currentViewerPage = computed<'web' | 'rvizweb' | 'vnc'>(() => {
+  if (route.path.endsWith('/vnc')) return 'vnc';
+  if (route.path.endsWith('/rvizweb')) return 'rvizweb';
+  return 'web';
+});
 const vncTabInitialized = ref(false);
 const vncForm = reactive({
   url: '',
@@ -408,7 +429,7 @@ const vncContainerRef = ref<HTMLDivElement | null>(null);
 const vncIframeRef = ref<HTMLIFrameElement | null>(null);
 
 const rvizWebForm = reactive({
-  url: '/rviz/',
+  wsUrl: '/rosbridge/',
 });
 const rvizWebIframeSrc = ref('');
 const rvizWebContainerRef = ref<HTMLDivElement | null>(null);
@@ -616,6 +637,9 @@ watch(
     if (page === 'vnc') {
       vncTabInitialized.value = true;
     }
+    if (page === 'rvizweb' && !rvizWebIframeSrc.value) {
+      handleOpenRvizWebInIframe();
+    }
   },
   { immediate: true },
 );
@@ -721,6 +745,7 @@ const applyStatus = (payload: RosStatusResponse) => {
 
   if (payload.wsUrl) {
     connectionForm.wsUrl = payload.wsUrl;
+    rvizWebForm.wsUrl = payload.wsUrl;
   }
 
   if (payload.vncUrl) {
@@ -869,9 +894,8 @@ const handleOpenVnc = () => {
 };
 
 const resolveRvizWebUrl = () => {
-  const raw = rvizWebForm.url.trim();
-  if (!raw) return '/rviz/';
-  return raw;
+  const rawWsUrl = rvizWebForm.wsUrl.trim() || '/rosbridge/';
+  return `/rviz/?ws=${encodeURIComponent(rawWsUrl)}`;
 };
 
 const handleOpenRvizWebInIframe = () => {
@@ -1667,7 +1691,6 @@ const initThree = () => {
 
 onMounted(async () => {
   initThree();
-  handleOpenRvizWebInIframe();
   restartStatusPolling();
   await refreshStatus();
 
