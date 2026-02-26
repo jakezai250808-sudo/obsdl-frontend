@@ -22,6 +22,7 @@
     connected: false,
     cloudMessageRatio: 2,
     cloudThrottleRateMs: 100,
+    expectedCloudType: 'sensor_msgs/PointCloud2',
   };
 
   const ui = {
@@ -59,8 +60,7 @@
   }
 
   function setNonFatalError(message) {
-    if (!message) return;
-    ui.error.textContent = message;
+    ui.error.textContent = message || '';
   }
 
   function applyQueryToUi() {
@@ -187,9 +187,51 @@
     }
   }
 
-  function setupCloudClient() {
+
+  function getTopicType(topicName) {
+    return new Promise((resolve) => {
+      if (!ros || typeof ros.getTopics !== 'function') {
+        resolve('');
+        return;
+      }
+
+      ros.getTopics(
+        (result) => {
+          const topics = result?.topics || [];
+          const types = result?.types || [];
+          const idx = topics.indexOf(topicName);
+          resolve(idx >= 0 ? types[idx] : '');
+        },
+        () => resolve('')
+      );
+    });
+  }
+
+  async function validatePointCloudTopicType() {
+    if (!state.connected || !state.cloudTopic) return true;
+
+    const type = await getTopicType(state.cloudTopic);
+    if (!type) {
+      setNonFatalError(`未查询到 ${state.cloudTopic} 的消息类型，请确认 topic 已发布。`);
+      return false;
+    }
+
+    if (type !== state.expectedCloudType) {
+      setNonFatalError(
+        `PointCloud Topic 类型应为 ${state.expectedCloudType}，当前为 ${type}。`
+      );
+      return false;
+    }
+
+    return true;
+  }
+
+  async function setupCloudClient() {
     teardownCloudClient();
     if (!ros || !tfClient || !state.showPointCloud || !state.cloudTopic) return;
+
+    const isValidType = await validatePointCloudTopicType();
+    if (!isValidType) return;
 
     cloudClient = new ROS3D.PointCloud2({
       ros,
@@ -201,6 +243,8 @@
       messageRatio: state.cloudMessageRatio,
       throttle_rate: state.cloudThrottleRateMs,
     });
+
+    setNonFatalError('');
   }
 
   function connectRos() {
