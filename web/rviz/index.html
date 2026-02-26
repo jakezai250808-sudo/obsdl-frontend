@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ROS 3D Viewer</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #0f172a;
+        color: #e2e8f0;
+      }
+      #app {
+        position: relative;
+        width: 100%;
+        height: 100%;
+      }
+      #viewer {
+        width: 100%;
+        height: 100%;
+        cursor: grab;
+        outline: none;
+      }
+      #viewer:focus {
+        box-shadow: inset 0 0 0 2px #38bdf8;
+      }
+      #viewer.dragging {
+        cursor: grabbing;
+      }
+      .panel {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: min(360px, calc(100vw - 24px));
+        max-height: calc(100vh - 24px);
+        overflow: auto;
+        background: rgba(15, 23, 42, 0.88);
+        backdrop-filter: blur(6px);
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        border-radius: 10px;
+        padding: 12px;
+        font-size: 13px;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 96px 1fr;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .row input[type='text'],
+      .row select {
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .status {
+        font-weight: 600;
+      }
+      .status.connected { color: #22c55e; }
+      .status.connecting { color: #f59e0b; }
+      .status.error,
+      .status.disconnected { color: #ef4444; }
+      .buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 8px 0;
+      }
+      button {
+        border: 1px solid rgba(148, 163, 184, 0.6);
+        background: #1e293b;
+        color: inherit;
+        border-radius: 8px;
+        padding: 4px 8px;
+        cursor: pointer;
+      }
+      #hint {
+        opacity: 0.8;
+        font-size: 12px;
+      }
+      #error {
+        color: #fca5a5;
+        min-height: 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div id="viewer" tabindex="0" aria-label="ROS 3D viewer"></div>
+      <div class="panel">
+        <div class="row">
+          <span>状态</span>
+          <span id="status" class="status disconnected">Disconnected</span>
+        </div>
+        <div class="row">
+          <span>WS 地址</span>
+          <input id="wsInput" type="text" />
+        </div>
+        <div class="row">
+          <span>Fixed Frame</span>
+          <select id="fixedFrameSelect">
+            <option value="map">map</option>
+            <option value="odom">odom</option>
+            <option value="base_link">base_link</option>
+          </select>
+        </div>
+        <div class="row">
+          <span>Marker Topic</span>
+          <input id="markerTopicInput" type="text" />
+        </div>
+        <div class="row">
+          <span>Marker 类型</span>
+          <select id="markerTypeSelect">
+            <option value="auto">auto(推荐)</option>
+            <option value="marker">visualization_msgs/Marker</option>
+            <option value="markerArray">visualization_msgs/MarkerArray</option>
+          </select>
+        </div>
+        <div class="row">
+          <span>PointCloud Topic<br/><small>(sensor_msgs/PointCloud2)</small></span>
+          <input id="cloudTopicInput" type="text" />
+        </div>
+        <div class="row">
+          <span>Auto Reconnect</span>
+          <input id="autoReconnectInput" type="checkbox" checked />
+        </div>
+        <div class="row">
+          <span>显示 Marker</span>
+          <input id="markerToggle" type="checkbox" checked />
+        </div>
+        <div class="row">
+          <span>显示 PointCloud</span>
+          <input id="cloudToggle" type="checkbox" />
+        </div>
+        <div class="buttons">
+          <button id="connectBtn">Connect</button>
+          <button id="disconnectBtn">Disconnect</button>
+          <button id="resetViewBtn">重置视角 (R)</button>
+          <button id="fullscreenBtn">全屏</button>
+        </div>
+        <div class="row">
+          <span>FPS</span>
+          <span id="fpsLabel">-</span>
+        </div>
+        <div id="error"></div>
+        <div id="hint">提示：先点击 3D 区域聚焦，再使用快捷键；滚轮/拖拽不会穿透到父页面。<br/>配置说明：fixed frame 是全局参考坐标系；Marker 类型建议 auto 自动识别；PointCloud 默认关闭以提升性能。</div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/eventemitter2@6.4.9/lib/eventemitter2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.124.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ros3d@1/build/ros3d.min.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
