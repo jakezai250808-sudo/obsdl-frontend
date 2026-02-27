@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RVizWeb Embed</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/eventemitter2@6.4.9/lib/eventemitter2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/roslib@1.4.1/build/roslib.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.173.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ros3d@1.2.0/build/ros3d.min.js"></script>
+  </head>
+  <body>
+    <div class="toolbar">
+      <span id="conn">Connecting...</span>
+      <label>WS URL <input id="ws" value="/rosbridge/" /></label>
+      <label>固定坐标 <input id="fixedFrame" value="map" /></label>
+      <button id="reconnect">重连</button>
+      <button id="resetView">重置视角</button>
+      <button id="fullscreen">全屏</button>
+      <button id="popout">弹出窗口</button>
+      <label><input id="toggleMarker" type="checkbox" checked /> Marker(限频topic)</label>
+      <label><input id="toggleCloud" type="checkbox" /> 点云(默认关)</label>
+      <span id="fps">FPS: --</span>
+      <span id="rate">CloudHz: -- / MarkerHz: --</span>
+    </div>
+    <div id="viewer" tabindex="0" aria-label="RViz Web 3D viewer"></div>
+    <script src="./rviz-app.js"></script>
+  </body>
+</html>

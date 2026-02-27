@@ -23,6 +23,7 @@ const router = createRouter({
         { path: 'ros-control', component: RosControlView },
         { path: 'rosbag-play', redirect: '/rosbag-play/web' },
         { path: 'rosbag-play/web', component: RosPerceptionViewerView },
+        { path: 'rosbag-play/rvizweb', component: RosPerceptionViewerView },
         { path: 'rosbag-play/vnc', component: RosPerceptionViewerView },
         { path: 'ros-perception-viewer', redirect: '/rosbag-play/web' },
       ],
